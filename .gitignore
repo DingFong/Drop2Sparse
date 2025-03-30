@@ -1,11 +1,5 @@
-# 忽略 pretrained 資料夾內的所有內容
 pretrained/*
-
-# 但保留 pretrained 這個資料夾（透過 .gitkeep）
+results/*
 !pretrained/.gitkeep
-
-result/*
-!result/.gitkeep
-__pycache__
-
+!results/.gitkeep
 wandb/

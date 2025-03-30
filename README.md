@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# Drop2Sparse
-=======
 # Drop2Sparse: Improving Dataset Distillation via Sparse Model
 
 Official implementation of *Drop2Sparse: Improving Dataset Distillation via Sparse Model* (Published in IEEE Transactions on Circuits and Systems for Video Technology).

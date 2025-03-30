@@ -87,5 +87,3 @@ journal={IEEE Transactions on Circuits and Systems for Video Technology},
 year={2025},
 }
 ```
-
->>>>>>> master

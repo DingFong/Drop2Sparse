@@ -5,4 +5,4 @@ result/*
 !result/.gitkeep
 __pycache__
 
-wandb
+wandb/

@@ -1,1 +1,0 @@
-{"Progress": 0, "ot_epoch": 0, "_timestamp": 1743301310.289479, "_runtime": 13.454988956451416, "_step": 34, "InnerLoop/loss": 419.55757904052734, "Expert/inner/top1": 47.314453125, "Expert/inner/top5": 89.306640625, "Expert/inner/loss": 1.5819168761372566, "inner_epoch": 33, "_wandb": {"runtime": 12}}

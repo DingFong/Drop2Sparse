@@ -55,6 +55,21 @@ python condense.py --reproduce -d cifar10 -f 2 --ipc 1 --sample_accrange 70 80 -
 - `--pruning_ratio`: Pruning percentage (`0.8` means 80% of weights removed).
 - `--pruning_type`: Type of pruning (`global`, etc.).
 
+#### Accelerating Condensation via Multi-processing
+
+To accelerate condensation on large datasets like ImageNet, multi-processing can be used to divide the dataset into class partitions and run condensation in parallel. Use `condense_mp.py` with the following arguments:
+
+- `--nclass_sub`: Number of classes per partition
+- `--phase`: Index of the partition to process (e.g., 0, 1, 2, ...)
+
+Each processor should be assigned a unique `--phase` value to avoid overlap. The condensed data from each partition will be combined during evaluation.
+
+Example for ImageNet-100 using 5 partitions:
+
+```
+python condense_mp.py --reproduce -d imagenet --nclass 100 -f [factor] --ipc [image/class] --nclass_sub 20 --phase [0,1,2,3,4]
+```
+
 ## Training Neural Networks on Condensed Data
 
 Set `--data_dir` and `--imagenet_dir` in `argument.py` to point to the folder containing the original dataset (required for measuring test accuracy). Then run the following command:

@@ -84,10 +84,10 @@ parser.add_argument('-d',
                     type=str,
                     help='dataset (options: mnist, fashion, svhn, cifar10, cifar100, and imagenet)')
 parser.add_argument('--data_dir',
-                    default='../data',
+                    default='/mnt/16THDD/Fred/FredH/CILAB/data',
                     type=str,
                     help='directory that containing dataset, except imagenet (see data.py)')
-parser.add_argument('--imagenet_dir', default='../data/imagenet/', type=str)
+parser.add_argument('--imagenet_dir', default='/mnt/16THDD/Fred/FredH/CILAB/data/imagenet/', type=str)
 parser.add_argument('--nclass', default=10, type=int, help='number of classes in trianing dataset')
 parser.add_argument('--dseed', default=0, type=int, help='seed for class sampling')
 parser.add_argument('--size', default=224, type=int, help='spatial size of image')
@@ -176,7 +176,7 @@ parser.add_argument('-a',
 parser.add_argument('--match',
                     type=str,
                     default='grad',
-                    choices=['feat', 'grad', 'soft_label', 'sp_grad', 'soft_grad', 'soft_grad_teacher', 'soft_grad_noise'],
+                    choices=['feat', 'grad'],
                     help='feature or gradient matching')
 parser.add_argument('--metric',
                     type=str,
@@ -249,43 +249,11 @@ parser.add_argument('--same_compute',
                     help='match evaluation training steps for IDC')
 parser.add_argument('--name', type=str, default='', help='name of the test data folder')
 
-## label soft
-parser.add_argument('--strategy', type = str)
-parser.add_argument('--smoothing', type = float, default = 0)
-parser.add_argument('--teacher_soft_label', action = 'store_true')
-parser.add_argument('--syn_soft_label', action = 'store_true')
-parser.add_argument('--temperature', type = int)
-
-## inner loop optimization
-parser.add_argument('--inner_schedule', action = 'store_true')
-
-parser.add_argument('--dist', type = bool)
-parser.add_argument('--t_net_type', type = str, default = 'resnet')
-parser.add_argument('--t_depth', type = int, default = 50)
-parser.add_argument('--t_norm_type', type = str, default = 'batch')
-
-
-## saliency
-parser.add_argument('--saliency', action = 'store_true')
-
-## gradient similarity
-parser.add_argument('--grad_simi', action = 'store_true')
-
 
 ## diversify model
-parser.add_argument('--apply_dropout', action = 'store_true')
-parser.add_argument('--dropout_rate', type = float, default = 0.1)
 parser.add_argument('--apply_pruning', action = "store_true")
 parser.add_argument('--pruning_type', type = str)
-parser.add_argument('--apply_masking', action = "store_true")
-parser.add_argument('--masking_type', type = str)
-
 parser.add_argument('--pruning_ratio', type = float)
-parser.add_argument('--pruning_ratio_type', default = 'uniform', type = str)
-parser.add_argument('--pruning_ratio_shallow', type = float)
-parser.add_argument('--pruning_ratio_deep', type = float)
-
-parser.add_argument('--num_tune_subnetwork', default = 0, type = int)
 
 
 
@@ -294,12 +262,6 @@ parser.add_argument('--sample_accrange', nargs = "+", type = int)
 parser.add_argument('--pool_number', type = int)
 parser.add_argument('--distributed_num', nargs = "+", type = int)
 parser.add_argument('--pretrained_dir', type = str)
-
-parser.add_argument('--capacity_thres', default = 0, type = float)
-
-# Regularization
-parser.add_argument('--wd_img', type = float, default = 0)
-
 
 
 # Tracking
@@ -470,8 +432,7 @@ if args.ipc > 0:
             args.tag += f'_b_real{args.batch_real}'
         if args.batch_syn_max != 128:
             args.tag += f'_synmax{args.batch_syn_max}'
-        if args.wd_img:
-            args.tag += f'_wd_img{args.wd_img}'
+  
 
         args.tag += f'_{args.init}'
         args.tag += f'_ipc:{args.ipc}'
@@ -481,14 +442,6 @@ else:
     if args.mixup != 'vanilla':
         args.tag += f'_{args.mixup}'
 
-if args.strategy:
-    args.tag += f'_strategy:{args.strategy}'
-
-if args.smoothing:
-    args.tag += f'_sm{args.smoothing}'
-
-if args.temperature:
-    args.tag += f'_temp{args.temperature}'
 
 if args.sample_accrange:
     if len(args.sample_accrange) == 2:
@@ -499,18 +452,6 @@ if args.sample_accrange:
     args.tag += f'_poolNumber: {args.pool_number}'
     if args.distributed_num:
         args.tag+= f'_dis_numrange({args.distributed_num[0]}, {args.distributed_num[1]})'
-
-if args.apply_pruning:
-    if args.pruning_type == 'global':
-        if args.pruning_ratio_type =='uniform':
-            args.tag += f'_pruning({args.pruning_ratio})_pruning_type:{args.pruning_type}_tuneEpoch:{args.num_tune_subnetwork}'
-        else:
-            args.tag += f'_pruning_type:{args.pruning_ratio_type}_({args.pruning_ratio_shallow, args.pruning_ratio_deep})'
-if args.apply_dropout:
-    args.tag += f'_dropout({args.dropout_rate})'
-
-if args.apply_masking:
-    args.tag += f'_masking({args.apply_masking})_masking_type:{args.masking_type}'
 
 if not args.pretrained_dir:
     args.pretrained_dir = f'./pretrained/{args.datatag}/{args.modeltag}_cut_dsa_p'
@@ -531,9 +472,6 @@ if args.test:
     args.save_dir = './results/test'
 else:
     args.save_dir = f"./results/{datatag}/{modeltag}{args.tag}"
-# args.modeltag = modeltag
-# args.datatag = datatag
-
 
 """
 Evaluation setting

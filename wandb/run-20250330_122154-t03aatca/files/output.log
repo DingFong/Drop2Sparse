@@ -1,0 +1,18 @@
+
+Save dir: ./results/imagenet100/resnet10apin_grad_l1_nd500_cut_nlr0.1_wd0.0001_factor3_bound_lr0.002_mom_img0.5_b_real128_mix_ipc:20_sample_accrange:(60-70)_poolNumber: 10_pretrained:resnet10apin_cut_dsa_p_10_phase0
+Traceback (most recent call last):
+  File "/home/user/桌面/FredH/Drop2Sparse/condense_mp.py", line 670, in <module>
+    condense(args, logger)
+  File "/home/user/桌面/FredH/Drop2Sparse/condense_mp.py", line 454, in condense
+    trainset, val_loader = load_resized_data(args, subclass_list)
+  File "/home/user/桌面/FredH/Drop2Sparse/condense_mp.py", line 266, in load_resized_data
+    train_dataset = ImageFolder(traindir,
+  File "/home/user/桌面/FredH/Drop2Sparse/data.py", line 63, in __init__
+    super(ImageFolder, self).__init__(root,
+  File "/home/user/miniconda3/envs/distillation/lib/python3.9/site-packages/torchvision/datasets/folder.py", line 145, in __init__
+    classes, class_to_idx = self.find_classes(self.root)
+  File "/home/user/miniconda3/envs/distillation/lib/python3.9/site-packages/torchvision/datasets/folder.py", line 219, in find_classes
+    return find_classes(directory)
+  File "/home/user/miniconda3/envs/distillation/lib/python3.9/site-packages/torchvision/datasets/folder.py", line 41, in find_classes
+    classes = sorted(entry.name for entry in os.scandir(directory) if entry.is_dir())
+FileNotFoundError: [Errno 2] No such file or directory: '../mnt/16THDD/Fred/FredH/CILAB/data/imagenet/train'

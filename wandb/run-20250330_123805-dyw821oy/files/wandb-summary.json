@@ -1,0 +1,1 @@
+{"Progress": 18, "ot_epoch": 18, "_timestamp": 1743318286.6739705, "_runtime": 8800.698831558228, "_step": 1918, "InnerLoop/loss": 5077.362060546875, "Expert/inner/top1": 25.1953125, "Expert/inner/top5": 71.875, "Expert/inner/loss": 2.1014555394649506, "inner_epoch": 1881, "MatchLoss": 358.55815768432615, "_wandb": {"runtime": 8801}}

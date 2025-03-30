@@ -1,0 +1,172 @@
+{
+    "os": "Linux-5.15.0-131-generic-x86_64-with-glibc2.31",
+    "python": "3.9.7",
+    "heartbeatAt": "2025-03-30T02:21:38.028512",
+    "startedAt": "2025-03-30T02:21:36.828686",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "-d",
+        "cifar10",
+        "-f",
+        "2",
+        "--ipc",
+        "1",
+        "--sample_accrange",
+        "70",
+        "80",
+        "--pool_number",
+        "5",
+        "--n_data",
+        "2000",
+        "--metric",
+        "mse",
+        "--niter",
+        "2000",
+        "--depth",
+        "3",
+        "-n",
+        "convnet",
+        "--apply_pruning",
+        "--pruning_ratio",
+        "0.8",
+        "--pruning_type",
+        "global"
+    ],
+    "state": "running",
+    "program": "/home/user/\u684c\u9762/FredH/Drop2Sparse/condense.py",
+    "codePath": "condense.py",
+    "git": {
+        "remote": "https://github.com/DingFong/Drop2Sparse.git",
+        "commit": "e4950543e25b8767ccb847e2ef78e756dc6930f9"
+    },
+    "email": "a890702000@gmail.com",
+    "root": "/home/user/\u684c\u9762/FredH/Drop2Sparse",
+    "host": "Z690-AORUS-ELITE-DDR4",
+    "username": "user",
+    "executable": "/home/user/miniconda3/envs/distillation/bin/python3",
+    "cpu_count": 12,
+    "cpu_count_logical": 20,
+    "cpu_freq": {
+        "current": 886.5342499999999,
+        "min": 800.0,
+        "max": 4580.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 855.306,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 901.626,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 828.643,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 900.74,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 812.025,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 900.367,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 841.545,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 900.807,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 871.463,
+            "min": 800.0,
+            "max": 4900.0
+        },
+        {
+            "current": 896.142,
+            "min": 800.0,
+            "max": 4900.0
+        },
+        {
+            "current": 860.599,
+            "min": 800.0,
+            "max": 4900.0
+        },
+        {
+            "current": 857.546,
+            "min": 800.0,
+            "max": 4900.0
+        },
+        {
+            "current": 837.851,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 900.76,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 900.708,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 900.746,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 900.171,
+            "min": 800.0,
+            "max": 3600.0
+        },
+        {
+            "current": 899.356,
+            "min": 800.0,
+            "max": 3600.0
+        },
+        {
+            "current": 900.299,
+            "min": 800.0,
+            "max": 3600.0
+        },
+        {
+            "current": 900.423,
+            "min": 800.0,
+            "max": 3600.0
+        }
+    ],
+    "disk": {
+        "total": 1832.2072448730469,
+        "used": 655.3628807067871
+    },
+    "gpu": "NVIDIA GeForce RTX 3090 Ti",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 3090 Ti",
+            "memory_total": 25757220864
+        }
+    ],
+    "memory": {
+        "total": 62.56108856201172
+    }
+}

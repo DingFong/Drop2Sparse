@@ -1,0 +1,24 @@
+
+Save dir: ./results/imagenet100/resnet10apin_grad_l1_nd500_cut_nlr0.1_wd0.0001_factor3_bound_lr0.002_mom_img0.5_b_real128_mix_ipc:20_sample_accrange:(60-70)_poolNumber: 10_pretrained:resnet10apin_cut_dsa_p_10_phase0
+Load target class data on memory..
+Subclass: [0 1 2 3 4 5 6 7 8 9], 12854
+Define synthetic data:  torch.Size([200, 3, 224, 224])
+Factor:  3
+Mixed initialize synset
+Augmentataion Matching:  color_crop_cutout
+Augmentataion Net update:  color_crop
+evaluation for [1, 2, 5, 10, 20, 100, 250, 500] iteration
+Start condensing with grad matching for 500 iteration
+model pool: []
+Pruning Type: global, ratio: 0.95
+  0%|                                                                                                                                                                                | 0/100 [00:03<?, ?it/s]
+Traceback (most recent call last):
+  File "/home/user/桌面/FredH/Drop2Sparse/condense_mp.py", line 670, in <module>
+    condense(args, logger)
+  File "/home/user/桌面/FredH/Drop2Sparse/condense_mp.py", line 559, in condense
+    loss, grad = matchloss(args, img_aug[:n], img_aug[n:], lab, lab_syn, model)
+  File "/home/user/桌面/FredH/Drop2Sparse/condense_mp.py", line 371, in matchloss
+    g_syn = torch.autograd.grad(loss_syn, model.parameters(), create_graph=True)
+  File "/home/user/miniconda3/envs/distillation/lib/python3.9/site-packages/torch/autograd/__init__.py", line 275, in grad
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+RuntimeError: CUDA out of memory. Tried to allocate 1.50 GiB (GPU 0; 23.68 GiB total capacity; 14.93 GiB already allocated; 121.06 MiB free; 19.10 GiB reserved in total by PyTorch) If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

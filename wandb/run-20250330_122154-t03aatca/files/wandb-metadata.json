@@ -1,0 +1,182 @@
+{
+    "os": "Linux-5.15.0-131-generic-x86_64-with-glibc2.31",
+    "python": "3.9.7",
+    "heartbeatAt": "2025-03-30T04:21:55.503709",
+    "startedAt": "2025-03-30T04:21:54.132188",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "-d",
+        "imagenet",
+        "--nclass",
+        "100",
+        "-f",
+        "3",
+        "--ipc",
+        "20",
+        "--decode_type",
+        "bound",
+        "--sample_accrange",
+        "60",
+        "70",
+        "--pool_number",
+        "10",
+        "--apply_pruning",
+        "--pruning_type",
+        "global",
+        "--pruning_ratio",
+        "0.95",
+        "--depth",
+        "10",
+        "--niter",
+        "500",
+        "--metric",
+        "l1",
+        "--lr_img",
+        "0.001",
+        "--n_data",
+        "500",
+        "-n",
+        "resnet_ap",
+        "--nclass_sub",
+        "10",
+        "--phase",
+        "0"
+    ],
+    "state": "running",
+    "program": "/home/user/\u684c\u9762/FredH/Drop2Sparse/condense_mp.py",
+    "codePath": "condense_mp.py",
+    "git": {
+        "remote": "https://github.com/DingFong/Drop2Sparse.git",
+        "commit": "e4950543e25b8767ccb847e2ef78e756dc6930f9"
+    },
+    "email": "a890702000@gmail.com",
+    "root": "/home/user/\u684c\u9762/FredH/Drop2Sparse",
+    "host": "Z690-AORUS-ELITE-DDR4",
+    "username": "user",
+    "executable": "/home/user/miniconda3/envs/distillation/bin/python3",
+    "cpu_count": 12,
+    "cpu_count_logical": 20,
+    "cpu_freq": {
+        "current": 886.9934,
+        "min": 800.0,
+        "max": 4580.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 804.903,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 841.399,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 814.523,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 835.546,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 831.951,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 840.476,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 803.712,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 835.966,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 876.409,
+            "min": 800.0,
+            "max": 4900.0
+        },
+        {
+            "current": 834.113,
+            "min": 800.0,
+            "max": 4900.0
+        },
+        {
+            "current": 816.594,
+            "min": 800.0,
+            "max": 4900.0
+        },
+        {
+            "current": 840.932,
+            "min": 800.0,
+            "max": 4900.0
+        },
+        {
+            "current": 827.378,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 838.25,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 812.387,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 900.391,
+            "min": 800.0,
+            "max": 4800.0
+        },
+        {
+            "current": 812.353,
+            "min": 800.0,
+            "max": 3600.0
+        },
+        {
+            "current": 899.229,
+            "min": 800.0,
+            "max": 3600.0
+        },
+        {
+            "current": 901.473,
+            "min": 800.0,
+            "max": 3600.0
+        },
+        {
+            "current": 899.395,
+            "min": 800.0,
+            "max": 3600.0
+        }
+    ],
+    "disk": {
+        "total": 1832.2072448730469,
+        "used": 655.3228569030762
+    },
+    "gpu": "NVIDIA GeForce RTX 3090 Ti",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 3090 Ti",
+            "memory_total": 25757220864
+        }
+    ],
+    "memory": {
+        "total": 62.56108856201172
+    }
+}

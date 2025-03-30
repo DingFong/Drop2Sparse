@@ -30,7 +30,7 @@ import torch.nn.utils.prune as prune
 class Synthesizer():
     """Condensed data class
     """
-    def __init__(self, args, nclass, nchannel, hs, ws, soft_label = None, device='cuda'):
+    def __init__(self, args, nclass, nchannel, hs, ws, device='cuda'):
         self.ipc = args.ipc
         self.nclass = nclass
         self.nchannel = nchannel
@@ -47,7 +47,7 @@ class Synthesizer():
                                     requires_grad=False,
                                     device=self.device).view(-1)
 
-        self.soft_label = soft_label
+        
         self.cls_idx = [[] for _ in range(self.nclass)]
         for i in range(self.data.shape[0]):
             self.cls_idx[self.targets[i]].append(i)
@@ -199,13 +199,6 @@ class Synthesizer():
         data, target = self.decode(data, target, bound=max_size)
         data, target = self.subsample(data, target, max_size=max_size)
 
-        if self.soft_label is not None:
-            target = [int(t) for t in target]
-            target_soft = torch.tensor([self.soft_label[t].tolist() for t in target],
-                                        requires_grad=False,
-                                        device=self.device)
-            
-            return data, target, target_soft
             
         return data, target
 
@@ -266,52 +259,10 @@ class Synthesizer():
         
         return [best_acc]
 
-class Soft_dataset(torch.utils.data.Dataset):
-    def __init__(self, train_dataset, teacher, temperature = None):
-        self.data = train_dataset
-        self.teacher = teacher
-        self.nclass = train_dataset.nclass
-        self.targets = train_dataset.targets
-        self.soft_targets = torch.empty((0, 100), dtype=torch.float32)
-        self.temperature = temperature
 
-        softmax = torch.nn.Softmax()
-        for v in tqdm(self.data):
-            pred = teacher(v[0].unsqueeze(0).to("cuda")).detach().to("cpu")
-            if self.temperature:
-                pred = pred/self.temperature
-            self.soft_targets = torch.vstack((self.soft_targets, softmax(pred)))
-            
-            
-    def __getitem__(self, index):
-        img, target, soft_target = self.data[index][0], self.targets[index], self.soft_targets[index]
-        return img, target, soft_target
-
-    def __len__(self):
-        return len(self.data)
-
-def load_resized_data(args, soft_label = None):
+def load_resized_data(args):
     """Load original training data (fixed spatial size and without augmentation) for condensation
     """
-    if soft_label:
-        
-        train_dataset = datasets.CIFAR100(args.data_dir,
-                                          train=True,
-                                          transform=transforms.ToTensor())
-
-        normalize = transforms.Normalize(mean=MEANS['cifar100'], std=STDS['cifar100'])
-        train_dataset.nclass = 100
-        args.net_type = 'resnet'
-        args.depth = 50
-
-        # teacher = define_model(args, train_dataset.nclass, teacher = True).to("cuda")
-        # teacher.load_state_dict(torch.load("pytorch-cifar100/checkpoint/resnet50/Tuesday_04_April_2023_11h_58m_31s/resnet50-193-best.pth"))
-        teacher = define_models(args, train_dataset.nclass).to("cuda")
-        teacher.load_state_dict(torch.load("results/cifar100/resnet50in_cut/model_best.pth.tar")['state_dict'])
-
-        soft_dataset = Soft_dataset(train_dataset, teacher, args.temperature)
-
-        return soft_dataset
 
     if args.dataset == 'cifar10':
         train_dataset = datasets.CIFAR10(args.data_dir, train=True, transform=transforms.ToTensor())
@@ -464,36 +415,10 @@ def add_loss(loss_sum, loss):
 def normalize(img):
     return (img - img.min())/(img.max()-img.min())
 
-class LabelSmoothingLoss(nn.Module):
-    def __init__(self, classes, smoothing=0.0, dim=-1, weight = None):
-        """if smoothing == 0, it's one-hot method
-           if 0 < smoothing < 1, it's smooth method
-        """
-        super(LabelSmoothingLoss, self).__init__()
-        self.confidence = 1.0 - smoothing
-        self.smoothing = smoothing
-        self.weight = weight
-        self.cls = classes
-        self.dim = dim
-
-    def forward(self, pred, target):
-        assert 0 <= self.smoothing < 1
-        pred = pred.log_softmax(dim=self.dim)
-
-        if self.weight is not None:
-            pred = pred * self.weight.unsqueeze(0)   
-
-        with torch.no_grad():
-            true_dist = torch.zeros_like(pred)
-            true_dist.fill_(self.smoothing / (self.cls - 1))
-            true_dist.scatter_(1, target.data.unsqueeze(1), self.confidence)
-        return torch.mean(torch.sum(-true_dist * pred, dim=self.dim))
-
 def matchloss(args, img_real, img_syn, lab_real, lab_syn, model):
     """Matching losses (feature or gradient)
     """
     loss = torch.tensor([0.0], requires_grad = True).cuda()
-    cosSimi = []
     
 
     if args.match == 'feat':
@@ -516,122 +441,7 @@ def matchloss(args, img_real, img_syn, lab_real, lab_syn, model):
         loss_syn = criterion_syn(output_syn, lab_syn)
         g_syn = torch.autograd.grad(loss_syn, model.parameters(), create_graph=True)
 
-        if args.capacity_thres >0:
-            for i in range(len(g_real)):
-                if (len(g_real[i].shape) == 1) and not args.bias:  # bias, normliazation
-                    continue
-                if (len(g_real[i].shape) == 2) and not args.fc:
-                    continue
-
-                similarity = 1 - dist(g_real[i], g_syn[i], method="cos")
-                if similarity > args.capacity_thres:
-                    loss = add_loss(loss, dist(g_real[i], g_syn[i], method=args.metric))
-                cosSimi.append(similarity)
-            return loss, sum(cosSimi)/len(cosSimi)
-        else:
-            for i in range(len(g_real)):
-                if (len(g_real[i].shape) == 1) and not args.bias:  # bias, normliazation
-                    continue
-                if (len(g_real[i].shape) == 2) and not args.fc:
-                    continue
-
-                loss = add_loss(loss, dist(g_real[i], g_syn[i], method=args.metric))
-
-
-            return loss, g_real
-
-    elif args.match == 'sp_grad':
-        criterion = nn.CrossEntropyLoss()
-
-        output_real = model(img_real)
-        loss_real = criterion(output_real, lab_real)
-        g_real = torch.autograd.grad(loss_real, model.parameters())
-        g_real = list((g.detach() for g in g_real))
-        # g_img_real = torch.autograd.grad(loss_real, img_real)[0]
-        # expert_saliencymaps, _ = torch.max(g_img_real.abs(), dim = 1)
-
-        criterion_syn = nn.CrossEntropyLoss()
-        output_syn = model(img_syn)
-        loss_syn = criterion_syn(output_syn, lab_syn)
-        g_syn = torch.autograd.grad(loss_syn, model.parameters(), create_graph=True, retain_graph = True)
-        g_syn_img = torch.autograd.grad(loss_syn, img_syn, retain_graph = True)[0]
-
-        student_saliencymaps, _ = torch.max(g_syn_img.abs(), dim = 1)
-
-
-        for i in range(len(g_real)):
-            if (len(g_real[i].shape) == 1) and not args.bias:  # bias, normliazation
-                continue
-            if (len(g_real[i].shape) == 2) and not args.fc:
-                continue
-
-            loss = add_loss(loss, dist(g_real[i], g_syn[i], method=args.metric))
-
-        return loss, student_saliencymaps.squeeze()
-
-    elif args.match == 'soft_grad_teacher':
-    
-        criterion = nn.CrossEntropyLoss()
-
-        output_real = model(img_real)
-        loss_real = criterion(output_real, lab_real)
-        g_real = torch.autograd.grad(loss_real, model.parameters())
-        g_real = list((g.detach() for g in g_real))
-
-        criterion_syn = nn.CrossEntropyLoss()
-        output_syn = model(img_syn)
-        loss_syn = criterion_syn(output_syn, lab_syn)
-        g_syn = torch.autograd.grad(loss_syn, model.parameters(), create_graph=True)
-
-        for i in range(len(g_real)):
-            if (len(g_real[i].shape) == 1) and not args.bias:  # bias, normliazation
-                continue
-            if (len(g_real[i].shape) == 2) and not args.fc:
-                continue
-
-            loss = add_loss(loss, dist(g_real[i], g_syn[i], method=args.metric))
-
-        return loss
-    elif args.match == 'soft_grad_noise':
-    
-        criterion = LabelSmoothingLoss(classes = args.nclass, smoothing = args.smoothing)
-
-        output_real = model(img_real)
-        loss_real = criterion(output_real, lab_real)
-        g_real = torch.autograd.grad(loss_real, model.parameters())
-        g_real = list((g.detach() for g in g_real))
-
-        if args.syn_soft_label:
-            criterion_syn = LabelSmoothingLoss(classes = args.nclass, smoothing = args.smoothing)
-        else:
-            criterion_syn = LabelSmoothingLoss(classes = args.nclass, smoothing = 0)
-            
-        output_syn = model(img_syn)
-        loss_syn = criterion_syn(output_syn, lab_syn)
-        g_syn = torch.autograd.grad(loss_syn, model.parameters(), create_graph=True)
-
-        for i in range(len(g_real)):
-            if (len(g_real[i].shape) == 1) and not args.bias:  # bias, normliazation
-                continue
-            if (len(g_real[i].shape) == 2) and not args.fc:
-                continue
-
-            loss = add_loss(loss, dist(g_real[i], g_syn[i], method=args.metric))
-
-        return loss, g_real
-    elif args.match == 'soft_label':
-        criterion = nn.CrossEntropyLoss(label_smoothing = args.smoothing)
-
-        output_real = model(img_real)
-        loss_real = criterion(output_real, lab_real)
-        g_real = torch.autograd.grad(loss_real, model.parameters())
-        g_real = list((g.detach() for g in g_real))
-
-        criterion_syn = nn.CrossEntropyLoss(label_smoothing = args.smoothing)
-        output_syn = model(img_syn)
-        loss_syn = criterion_syn(output_syn, lab_syn)
-        g_syn = torch.autograd.grad(loss_syn, model.parameters(), create_graph=True)
-
+       
         for i in range(len(g_real)):
             if (len(g_real[i].shape) == 1) and not args.bias:  # bias, normliazation
                 continue
@@ -642,6 +452,8 @@ def matchloss(args, img_real, img_syn, lab_real, lab_syn, model):
 
 
         return loss, g_real
+    
+    return loss, feat
 
 
 # pretrained model sampled by epoch or acc range
@@ -679,47 +491,9 @@ def pretrain_sample(args, model, verbose=False):
         print(f"Expert: pretrain from : {file_dir}")
         load_ckpt(model, file_dir, verbose=verbose)
 
-def add_dropout(model):
-    print(f"convnet_dropout, ratio:{args.dropout_rate}, dataset:{args.dataset}, depth = {args.depth}, norm_type: {args.norm_type}, nch = {args.nch}")
-    pretrained_dict = model.state_dict()
-
-    width = int(128 * args.width)
-    model_dropout = CN.ConvNet_dropout(args.nclass,
-                    net_norm=args.norm_type,
-                    net_depth=args.depth,
-                    net_width=width,
-                    channel=args.nch,
-                    dropout_rate = args.dropout_rate,
-                    im_size=(args.size, args.size))
-
-    model_dropout_dict = model_dropout.state_dict()
-    pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dropout_dict}
-    model_dropout_dict.update(pretrained_dict)
-
-    model_dropout.load_state_dict(model_dropout_dict)
-    return model_dropout
-def apply_dropout(args, model, device):
-    pretrained_dict = model.state_dict()
-    width = int(128 * args.width)
-    model_dropout = CN.ConvNet_mask(args.nclass,
-                    net_norm=args.norm_type,
-                    net_depth=args.depth,
-                    net_width=width,
-                    channel=args.nch,
-                    dropout_rate = args.dropout_rate,
-                    im_size=(args.size, args.size), 
-                    )
-
-    model_dropout_dict = model_dropout.state_dict()
-    pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dropout_dict}
-    model_dropout_dict.update(pretrained_dict)
-
-    model_dropout.load_state_dict(model_dropout_dict)
-    return model_dropout
-
 
 def apply_pruning(args, model):
-    print(f"Pruning_type:{args.pruning_type}, strategy:{args.pruning_ratio_type}")
+    print(f"Pruning_type:{args.pruning_type}")
     if args.pruning_type == "fc":
         parameters_to_prune = [
         (model.classifier, 'weight')
@@ -731,74 +505,13 @@ def apply_pruning(args, model):
             (model.layers.conv[2], 'weight'),
             (model.classifier, 'weight'),
         ]
-    # elif args.pruning_type == "pruning_shallow":
-    #     parameters_to_prune = [
-    #         (model.layers.conv[0], 'weight'),
-    #         (model.layers.conv[1], 'weight'),
-    #     ]
-    # elif args.pruning_type == "pruning_deep":
-    #     parameters_to_prune = [
-    #         (model.layers.conv[2], 'weight'),
-    #         (model.classifier, 'weight'),
-    #     ]
-
-    # if args.pruning_ratio_type == "uniform":
+    
     for module, name in parameters_to_prune:
         if name == 'weight':
             prune.random_unstructured(module, name='weight', amount=args.pruning_ratio)
         else:
             prune.random_unstructured(module, name='bias', amount=args.pruning_ratio)
-    # else:
-    #     for idx, (module, name) in enumerate(parameters_to_prune):
-    #         if idx<2:
-    #             if name == 'weight':
-    #                 prune.random_unstructured(module, name='weight', amount=args.pruning_ratio_shallow)
-    #             else:
-    #                 prune.random_unstructured(module, name='bias', amount=args.pruning_ratio_shallow)
-    #         else:
-    #             if name == 'weight':
-    #                 prune.random_unstructured(module, name='weight', amount=args.pruning_ratio_deep)
-    #             else:
-    #                 prune.random_unstructured(module, name='bias', amount=args.pruning_ratio_deep)
-
-def apply_masking(args, model):
-    if args.masking_type == "fc":
-        parameters_to_prune = [
-        (model.classifier, 'weight')
-        ]
-    elif args.masking_type == "global":
-        parameters_to_prune = [
-            (model.layers.conv[0], 'weight'),
-            (model.layers.conv[1], 'weight'),
-            (model.layers.conv[2], 'weight'),
-            (model.classifier, 'weight'),
-        ]
-
-    for module, name in parameters_to_prune:
-        if name == 'weight':
-            weight = module.weight
-            weight_shape = weight.shape
-            mask = torch.zeros(weight_shape)
-            for i in range(weight_shape[0]):
-                for j in range(weight_shape[1]):
-                    if random.random() < args.pruning_ratio:
-                        mask[i, j] = 0  # 刪除連結
-                    else:
-                        mask[i, j] = 1  # 保留連結
-            mask = mask.to(weight.device)
-            module.weight = nn.Parameter(weight * mask)
-        else:
-            bias = module.bias
-            bias_shape = bias.shape
-            mask = torch.zeros(bias_shape)
-            for i in range(bias_shape[0]):
-                if random.random() < args.pruning_ratio:
-                    mask[i] = 0  # 删掉
-                else:
-                    mask[i] = 1  # 俩留
-            mask = mask.to(bias.device)
-            module.bias = nn.Parameter(bias * mask)
-            
+ 
 
 
 def condense(args, logger, device='cuda'):
@@ -820,27 +533,6 @@ def condense(args, logger, device='cuda'):
     args.tmp_net_type = args.net_type
     args.tmp_depth = args.depth
 
-    
-    if args.teacher_soft_label:
-        trainset_soft = load_resized_data(args, args.teacher_soft_label)
-        if args.load_memory:
-            loader_real_st = ClassMemDataLoader(trainset_soft, batch_size=args.batch_real)
-        else:
-            loader_real_st = ClassDataLoader(trainset_soft,
-                                        batc_size=args.batch_real,
-                                        num_workers=args.workers,
-                                        shuffle=True,
-                                        pin_memory=True,
-                                        drop_last=True) 
-        if args.syn_soft_label:
-            syn_soft_target = torch.empty((0, trainset_soft.nclass), dtype=torch.float32)
-            for class_idx in range(trainset_soft.nclass):
-                label_class = loader_real_st.class_sample(class_idx)[1]
-
-                class_dis = torch.mean(label_class, axis = 0)
-                class_dis = class_dis.cpu()
-                syn_soft_target = torch.vstack((syn_soft_target, class_dis))
-    
     args.net_type = args.tmp_net_type
     args.depth = args.tmp_depth
 
@@ -848,10 +540,7 @@ def condense(args, logger, device='cuda'):
     nch, hs, ws = trainset[0][0].shape
 
     # Define syn dataset
-    if args.match == "soft_grad_teacher" and args.syn_soft_label:
-        synset = Synthesizer(args, nclass, nch, hs, ws, soft_label = syn_soft_target)
-    else:
-        synset = Synthesizer(args, nclass, nch, hs, ws)
+    synset = Synthesizer(args, nclass, nch, hs, ws)
 
     synset.init(loader_real, init_type=args.init)
     save_img(os.path.join(args.save_dir, 'init.png'),
@@ -870,7 +559,7 @@ def condense(args, logger, device='cuda'):
         # synset.test(args, val_loader, logger, bench=False)
 
     # Data distillation
-    optim_img = torch.optim.SGD(synset.parameters(), lr=args.lr_img, momentum=args.mom_img, weight_decay = args.wd_img)
+    optim_img = torch.optim.SGD(synset.parameters(), lr=args.lr_img, momentum=args.mom_img)
 
     ts = utils.TimeStamp(args.time)
     n_iter = args.niter * 100 // args.inner_loop
@@ -880,9 +569,6 @@ def condense(args, logger, device='cuda'):
     
     logger(f"\nStart condensing with {args.match} matching for {n_iter} iteration")
     args.fix_iter = max(1, args.fix_iter)
-
-    class2saliency = random.sample(range(100), 10)
-
     
     args.pretrained_dir = f'./pretrained/{args.datatag}/{args.modeltag}_cut'
     model_pool = []
@@ -895,101 +581,12 @@ def condense(args, logger, device='cuda'):
         logger(f"pretrained dir: {path_model_pool}")
     logger(f"model pool: {model_pool}")
 
-    ## get all possible seeds _300_{seeds}_30_40
-    # folder_name = os.path.join(args.pretrained_dir, f"*_40_50")
-    # folders = glob.glob(folder_name)
-    # for folder in folders:
-    #     seeds.append(folder.split("/")[-1].split("_")[2])
-    # random.shuffle(seeds)
-    # logger(f"Seeds: {seeds}")
-
-    # ## generate model pool: according to args.pool_number and args.sample_accrange,
-    # ## random pick specific number of model from folder pretrained/{args.datatag}/{args.modeltag}_cut/_300_{random_seed}_{args.sample_accrange[0]}_{args.sample_accrange[1]}/
-    # if args.pool_number and args.pool_number > 0:
-    #     if args.sample_accrange[1] - args.sample_accrange[0] == 0:
-    #         for seed in seeds:
-    #             folder_name = os.path.join(args.pretrained_dir, f"*_{seed}_initial")
-    #             folder = glob.glob(folder_name)[0]
-    #             logger(f"folder : {folder}")
-    #             model_pool.append(random.sample(glob.glob(os.path.join(folder, "*.pth.tar")), 1)[0])
-    #     elif len(args.sample_accrange) == 2 and args.distributed_num == None:
-    #         number_of_range = (args.sample_accrange[1] - args.sample_accrange[0])//10
-        
-    #         ## use number_of_range(3) to evenly distribute pool_number(10), e.g [3,4,3]
-    #         num_of_each_range = [args.pool_number//number_of_range for _ in range(number_of_range)] 
-    #         for i in range(args.pool_number%number_of_range):
-    #             num_of_each_range[i] += 1
-    #         random.shuffle(num_of_each_range)
-    #         logger(f"num_of_each_range: {num_of_each_range}")
-            
-    #         dis_seeds = []
-    #         for num in num_of_each_range:
-    #             dis_seeds.append(seeds[:num])
-    #             seeds = seeds[num:]
-
-    #         for ith, seed_in_folders in enumerate(dis_seeds):
-    #             for seed in seed_in_folders:
-    #                 folder_name = os.path.join(args.pretrained_dir, f"*_{seed}_{args.sample_accrange[0]+ith*10}_{args.sample_accrange[0]+ith*10+10}")
-
-    #                 ## get folders by folder_name and sample args.pool_number of folders randomly
-    #                 folder = glob.glob(folder_name)[0]
-    #                 logger(f"folder : {folder}")
-    #                 model_pool.append(random.sample(glob.glob(os.path.join(folder, "*.pth.tar")), 1)[0])
-    #     elif args.distributed_num:
-    #         number_of_range = len(args.sample_accrange)//2
-    #         num_of_each_range = args.distributed_num
-    #         dis_seeds = []
-    #         for num in num_of_each_range:
-    #             dis_seeds.append(seeds[:num])
-    #             seeds = seeds[num:]
-
-    #         for ith, seed_in_folders in enumerate(dis_seeds):
-    #             for seed in seed_in_folders:
-    #                 folder_name = os.path.join(args.pretrained_dir, f"*_{seed}_{args.sample_accrange[0 + ith*2]}_{args.sample_accrange[1+ ith*2]}")
-
-    #                 ## get folders by folder_name and sample args.pool_number of folders randomly
-    #                 folder = glob.glob(folder_name)[0]
-    #                 logger(f"folder : {folder}")
-    #                 model_pool.append(random.sample(glob.glob(os.path.join(folder, "*.pth.tar")), 1)[0])
-
-    #     else:
-    #         number_of_range = len(args.sample_accrange)//2
-
-    #         num_of_each_range = [args.pool_number//number_of_range for _ in range(number_of_range)] 
-    #         for i in range(args.pool_number%number_of_range):
-    #             num_of_each_range[i] += 1
-    #         random.shuffle(num_of_each_range)
-    #         logger(f"num_of_each_range: {num_of_each_range}")
-            
-    #         dis_seeds = []
-    #         for num in num_of_each_range:
-    #             dis_seeds.append(seeds[:num])
-    #             seeds = seeds[num:]
-
-    #         for ith, seed_in_folders in enumerate(dis_seeds):
-    #             for seed in seed_in_folders:
-    #                 folder_name = os.path.join(args.pretrained_dir, f"*_{seed}_{args.sample_accrange[0 + ith*2]}_{args.sample_accrange[1+ ith*2]}")
-
-    #                 ## get folders by folder_name and sample args.pool_number of folders randomly
-    #                 folder = glob.glob(folder_name)[0]
-    #                 logger(f"folder : {folder}")
-    #                 model_pool.append(random.sample(glob.glob(os.path.join(folder, "*.pth.tar")), 1)[0])
-
-
-
-
-        # logger(f"model pool: {model_pool}")
-
-
 
     for it in range(n_iter):
         wandb.log({"Progress": it, "ot_epoch":it})
         if it % args.fix_iter == 0:            
             model = define_model(args, nclass)
-            if args.dist:
-                model = torch.nn.DataParallel(model).to(device)
-            else:
-                model = model.to(device)
+            model = model.to(device)
 
             model.train()
             optim_net = optim.SGD(model.parameters(),
@@ -1018,93 +615,33 @@ def condense(args, logger, device='cuda'):
                                 aug=aug_rand,
                                 mixup=args.mixup_net)
             
-
-        loss_total = 0
-        image_sps = []
-        images = []
-
-        synset.data.data = torch.clamp(synset.data.data, min=0., max=1.)
-
-
-        # for calculate gradient bwtween innerloop
-        inner_loop_simi = [] # (100, 100) (innerloop, classes_num)
-        last_classes_grad = None
-        
         # ============== model augmentation =================
         if args.apply_pruning:
             logger(f'Pruning Type: {args.pruning_type}, ratio: {args.pruning_ratio}')
             apply_pruning(args, model)
-        elif args.apply_dropout:
-            # model = add_dropout(model).to(device)
-            model = apply_dropout(args, model, device).to(device)
-        elif args.apply_masking:
-            apply_masking(args, model)
-
         
-        if args.num_tune_subnetwork!=0:
-            for _ in range(args.num_tune_subnetwork):
-                    train_epoch(args,
-                                loader_real,
-                                model,
-                                criterion,
-                                optim_net,
-                                aug=aug_rand,
-                                mixup=args.mixup_net)
-
         # ===================================================
-        
+        loss_total = 0
+        synset.data.data = torch.clamp(synset.data.data, min=0., max=1.)
+
         
         for ot in tqdm(range(args.inner_loop)):
             ts.set()
             
-            if args.inner_schedule and ot in inner_schedule:
-                # train one epoch
-                if args.n_data > 0:
-                    for _ in range(args.net_epoch):
-                        top1, top5, losses = train_epoch(args,
-                                                        loader_real,
-                                                        model,
-                                                        criterion,
-                                                        optim_net,
-                                                        n_data=args.n_data,
-                                                        aug=aug_rand,
-                                                        mixup=args.mixup_net)
-                continue
-
-
-            # (100, len(Weight))
-            classes_grad = []
             inner_loss = 0
-            classes_similarity = []
-
             for c in range(nclass):
-                if args.teacher_soft_label:
-                    img, lab = loader_real_st.class_sample(c)
-                else:
-                    img, lab = loader_real.class_sample(c)
+                img, lab = loader_real.class_sample(c)
 
-                if args.match == "soft_grad_teacher" and  args.syn_soft_label:
-                    img_syn, _, lab_syn = synset.sample(c, max_size=args.batch_syn_max)
-                else:
-                    img_syn, lab_syn = synset.sample(c, max_size=args.batch_syn_max)
+                img_syn, lab_syn = synset.sample(c, max_size=args.batch_syn_max)
                     
                 ts.stamp("data")
-
-                if args.saliency and (it+1) in it_test and ot==(args.inner_loop-1):
-                    img_syn.retain_grad()
 
                 n = img.shape[0]
                 img_aug = aug(torch.cat([img, img_syn]))
                 ts.stamp("aug")
 
-                if args.capacity_thres > 0:
-                    loss, similarity = matchloss(args, img_aug[:n], img_aug[n:], lab, lab_syn, model)
-                    classes_similarity.append(similarity)
-                    
-                else:    
-                    loss, grad = matchloss(args, img_aug[:n], img_aug[n:], lab, lab_syn, model)
-
-               
+                 
+                loss, grad = matchloss(args, img_aug[:n], img_aug[n:], lab, lab_syn, model)
 
                 inner_loss += loss.item()
                 loss_total += loss.item()
@@ -1112,62 +649,11 @@ def condense(args, logger, device='cuda'):
 
                 optim_img.zero_grad()
                 loss.backward()
-
-                # SaliencyMap for syn image update
-                if args.saliency and (it+1) in it_test and ot==(args.inner_loop-1):
-                    g_img_syn = img_syn.grad
-                    syn_saliency = torch.max(g_img_syn.abs(), dim = 1)[0].squeeze()
-
-
                 
                 optim_img.step()
                 ts.stamp("backward")
 
-                
-                #saliencymap
-                if args.saliency and (it+1) in it_test and ot==(args.inner_loop-1): ##
             
-                    syn_saliency = syn_saliency.cpu().numpy()
-                    my_cmap = matplotlib.cm.get_cmap('jet')
-
-                    i = 1
-                    for imgs, ss in zip(img_syn.detach(), syn_saliency):
-                        n_saliency = (ss - np.min(ss))/ (np.max(ss) - np.min(ss))
-                        color_array = my_cmap(n_saliency)
-                        img_de = torch.clamp(imgs.unsqueeze(0), min=0., max=1.).cpu()
-                        image_sp = wandb.Image(color_array, caption = f"img{c}_{i}_{it}")
-                        image = wandb.Image(img_de, caption = f"img{c}_{i}_{it}")
-                        image_sps.append(image_sp)
-                        images.append(image)
-                        i+=1
-                        
-            
-            # wandb.log({ "inner_epoch": ot+it*args.inner_loop})
-            if args.grad_simi:
-                if last_classes_grad is not None:
-                    classes_simi = []
-                    for class_idx in range(len(classes_grad)):
-                        g_real_class = classes_grad[class_idx]
-                        last_grad_class = last_classes_grad[class_idx]
-                        similarity = []
-
-                        for i in range(len(g_real_class)):
-                            if (len(g_real_class[i].shape) == 1) and not args.bias:  # bias, normliazation
-                                continue
-                            if (len(g_real_class[i].shape) == 2) and not args.fc:
-                                continue
-
-                            simi = dist(g_real_class[i], last_grad_class[i], method = "cos")
-                            similarity.append(simi)
-                        classes_simi.append(np.mean(similarity))
-
-                    # inner_loop_simi : (99, 100) (innerloop-1, classes_num)    
-                    inner_loop_simi.append(classes_simi)
-                    last_classes_grad = classes_grad
-                else:
-                    last_classes_grad = classes_grad
-
-                
 
             # Net update
             if args.n_data > 0:
@@ -1180,28 +666,17 @@ def condense(args, logger, device='cuda'):
                                                     n_data=args.n_data,
                                                     aug=aug_rand,
                                                     mixup=args.mixup_net)
-                    
-                    if args.capacity_thres>0:
-                        wandb.log({"InnerLoop/loss":inner_loss,
-                                "Expert/inner/top1":top1,
-                                "Expert/inner/top5":top5,
-                                "Expert/inner/loss":losses,
-                                "Similarity": sum(classes_similarity)/len(classes_similarity),
-                                "inner_epoch": ot+it*args.inner_loop
-                                })
-                    else:
-                            wandb.log({"InnerLoop/loss":inner_loss,
-                                "Expert/inner/top1":top1,
-                                "Expert/inner/top5":top5,
-                                "Expert/inner/loss":losses,
-                                "inner_epoch": ot+it*args.inner_loop
-                                })
+                wandb.log({"InnerLoop/loss":inner_loss,
+                               "Expert/inner/top1":top1,
+                               "Expert/inner/top5":top5,
+                               "Expert/inner/loss":losses,
+                               "inner_epoch": ot+it*args.inner_loop
+                            })
+            else:
+                wandb.log({
+                    "innerLoop/loss":inner_loss,
+                })
 
-           
-            
-        
-
-        
             ts.stamp("net update")
 
             if (ot + 1) % 10 == 0:
@@ -1212,15 +687,6 @@ def condense(args, logger, device='cuda'):
             wandb.log({"Expert/top1":top1, 
                         "Expert/top5":top5, 
                         "Expert/loss":losses, "ot_epoch":it})
-
-        if args.grad_simi:
-            print(f"save boxplot: ({len(inner_loop_simi)}, {len(inner_loop_simi[0])})")
-            # plot inner_loop_simi boxplot:
-            plt.figure(figsize=(30,15))
-            plt.boxplot(inner_loop_simi)
-            plt.show()
-            plt.savefig(f"{args.save_dir}/{it}_inner_loop_simi.png")
-
 
 
         wandb.log({"MatchLoss":loss_total/nclass/args.inner_loop, "ot_epoch":it})
@@ -1236,9 +702,6 @@ def condense(args, logger, device='cuda'):
                      unnormalize=False,
                      dataname=args.dataset)
 
-            if args.saliency:
-                for img, img_sp in tzip(images, image_sps):
-                    wandb.log({"Student/Saliency": img_sp, "Student/image": img})
                 
 
             # It is okay to clamp data to [0, 1] at here.
@@ -1266,37 +729,6 @@ if __name__ == '__main__':
     import wandb
 
     assert args.ipc > 0
-
-    # if args.sample_accrange:
-    #     if len(args.sample_accrange) ==2 :
-    #         wandb.init(sync_tensorboard=False,
-    #             project = "DatasetDistillation",
-    #             job_type = "CleanRepo",
-    #             config = args,
-    #             name = f'IDC_dataset:{args.dataset}_ipc_ipc:{args.ipc}_model:{args.modeltag}_match:{args.match}_strategy:{args.strategy}_softlabel:{args.smoothing}_temperature:{args.temperature}_early:{args.early}_ptrange:({args.pt_from} - {args.pt_from+args.pt_num})_sampleRange:({args.sample_accrange[0]} - {args.sample_accrange[1]})_poolnumber:{args.pool_number}_dropout:{args.apply_dropout}_rate:{args.dropout_rate}_pruning:{args.apply_pruning}({args.pruning_ratio})_pruning_type:{args.pruning_type}_tuneEpoch:{args.num_tune_subnetwork}_Masking:{args.apply_masking}_masking_type:{args.masking_type}_capacity_thresh:{args.capacity_thres}')
-    #     elif len(args.sample_accrange) ==4:
-    #         if args.distributed_num:
-    #             wandb.init(sync_tensorboard=False,
-    #             project = "DatasetDistillation",
-    #             job_type = "CleanRepo",
-    #             config = args,
-    #             name = f'IDC_dataset:{args.dataset}_ipc_ipc:{args.ipc}_model:{args.modeltag}_match:{args.match}_strategy:{args.strategy}_softlabel:{args.smoothing}_temperature:{args.temperature}_early:{args.early}_ptrange:({args.pt_from} - {args.pt_from+args.pt_num})_sampleRange:({args.sample_accrange[0]} - {args.sample_accrange[1]} - {args.sample_accrange[2]} - {args.sample_accrange[3]})_poolnumber:{args.pool_number}_dis_num:{args.distributed_num}_dropout:{args.apply_dropout}_rate:{args.dropout_rate}_pruning:{args.apply_pruning}({args.pruning_ratio})_pruning_type:{args.pruning_type}_Masking:{args.apply_masking}_masking_type:{args.masking_type}')
-    #         else:
-    #             wandb.init(sync_tensorboard=False,
-    #             project = "DatasetDistillation",
-    #             job_type = "CleanRepo",
-    #             config = args,
-    #             name = f'IDC_dataset:{args.dataset}_ipc_ipc:{args.ipc}_model:{args.modeltag}_match:{args.match}_strategy:{args.strategy}_softlabel:{args.smoothing}_temperature:{args.temperature}_early:{args.early}_ptrange:({args.pt_from} - {args.pt_from+args.pt_num})_sampleRange:({args.sample_accrange[0]} - {args.sample_accrange[1]} - {args.sample_accrange[2]} - {args.sample_accrange[3]})_poolnumber:{args.pool_number}_dropout:{args.apply_dropout}_rate:{args.dropout_rate}_pruning:{args.apply_pruning}({args.pruning_ratio})_pruning_type:{args.pruning_type}_Masking:{args.apply_masking}_masking_type:{args.masking_type}')
-            
-
-
-    # else:
-    #      wandb.init(sync_tensorboard=False,
-    #             project = "DatasetDistillation",
-    #             job_type = "CleanRepo",
-    #             config = args,
-    #             name = f'IDC_dataset:{args.dataset}_ipc_ipc:{args.ipc}_model:{args.modeltag}_match:{args.match}_strategy:{args.strategy}_softlabel:{args.smoothing}_temperature:{args.temperature}_early:{args.early}_ptrange:({args.pt_from} - {args.pt_from+args.pt_num})_sampleRange:()_poolnumber:{args.pool_number}_dropout:{args.apply_dropout}_rate:{args.dropout_rate}_pruning:{args.apply_pruning}({args.pruning_ratio})_pruning_type:{args.pruning_type}_Masking:{args.apply_masking}_masking_type:{args.masking_type}')
-
     
     wandb.init(sync_tensorboard=False,
                 project = "DatasetDistillation",

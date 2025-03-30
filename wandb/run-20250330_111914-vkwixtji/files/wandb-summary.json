@@ -1,0 +1,1 @@
+{"Progress": 193, "ot_epoch": 193, "_timestamp": 1743307799.835286, "_runtime": 3045.2353558540344, "_step": 580, "Expert/top1": 55.6640625, "Expert/top5": 91.650390625, "Expert/loss": 1.3404486700892448, "MatchLoss": 23.69464867925644, "Test/ConvNet": 49.13999999999999, "Test/ResNet": 38.06, "_wandb": {"runtime": 3054}}

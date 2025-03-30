@@ -1,0 +1,13 @@
+
+Save dir: ./results/cifar10/conv3in_grad_mse_nd2000_cut_niter2000_factor2_lr0.0005_mom_img0.5_mix_ipc:1_sample_accrange:(70-80)_poolNumber: 5_pretrained:conv3in_cut_dsa_p
+Define synthetic data:  torch.Size([10, 3, 32, 32])
+Factor: 2 (single)
+Mixed initialize synset
+Augmentataion Matching:  color_crop_cutout
+Augmentataion Net update:  color_crop
+Traceback (most recent call last):
+  File "/home/user/桌面/FredH/Drop2Sparse/condense.py", line 1044, in <module>
+    condense(args, logger)
+  File "/home/user/桌面/FredH/Drop2Sparse/condense.py", line 849, in condense
+    optim_img = torch.optim.SGD(synset.parameters(), lr=args.lr_img, momentum=args.mom_img, weight_decay = args.wd_img)
+AttributeError: 'Namespace' object has no attribute 'wd_img'

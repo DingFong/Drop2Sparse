@@ -411,59 +411,28 @@ def pretrain_sample(args, model, verbose=False):
     file_dir = os.path.join(folder, ckpt)
     load_ckpt(model, file_dir, verbose=verbose)
 
-# def apply_pruning(args, model):
-#     if args.pruning_type == "fc":
-#         parameters_to_prune = [
-#         (model.fc, 'weight')
-#         ]
-#     elif args.pruning_type == "global":
-#         parameters_to_prune = [
-#             (model.layer0.conv1, 'weight'),
-#             (model.layer1[0].conv1, 'weight'),
-#             (model.layer1[0].conv2, 'weight'),
-#             (model.layer2[0].conv1, 'weight'),
-#             (model.layer2[0].conv2, 'weight'),
-#             (model.layer2[0].downsample[0], 'weight'),
-#             (model.layer3[0].conv1, 'weight'),
-#             (model.layer3[0].conv2, 'weight'),
-#             (model.layer3[0].downsample[0], 'weight'),
-#             (model.layer4[0].conv1, 'weight'),
-#             (model.layer4[0].conv2, 'weight'),
-#             (model.layer4[0].downsample[0], 'weight'),
-#             (model.fc, 'weight'),
-#         ]
-
-#     for module, name in parameters_to_prune:
-#         if name == 'weight':
-#             prune.random_unstructured(module, name='weight', amount=args.pruning_ratio)
-#         else:
-#             prune.random_unstructured(module, name='bias', amount=args.pruning_ratio)
-
 def apply_pruning(args, model):
-    print(f"Pruning_type:{args.pruning_type}, strategy:{args.pruning_ratio_type}")
     if args.pruning_type == "fc":
         parameters_to_prune = [
-        (model.classifier, 'weight')
+        (model.fc, 'weight')
         ]
     elif args.pruning_type == "global":
         parameters_to_prune = [
-            (model.layers.conv[0], 'weight'),
-            (model.layers.conv[1], 'weight'),
-            (model.layers.conv[2], 'weight'),
-            (model.classifier, 'weight'),
+            (model.layer0.conv1, 'weight'),
+            (model.layer1[0].conv1, 'weight'),
+            (model.layer1[0].conv2, 'weight'),
+            (model.layer2[0].conv1, 'weight'),
+            (model.layer2[0].conv2, 'weight'),
+            (model.layer2[0].downsample[0], 'weight'),
+            (model.layer3[0].conv1, 'weight'),
+            (model.layer3[0].conv2, 'weight'),
+            (model.layer3[0].downsample[0], 'weight'),
+            (model.layer4[0].conv1, 'weight'),
+            (model.layer4[0].conv2, 'weight'),
+            (model.layer4[0].downsample[0], 'weight'),
+            (model.fc, 'weight'),
         ]
-    # elif args.pruning_type == "pruning_shallow":
-    #     parameters_to_prune = [
-    #         (model.layers.conv[0], 'weight'),
-    #         (model.layers.conv[1], 'weight'),
-    #     ]
-    # elif args.pruning_type == "pruning_deep":
-    #     parameters_to_prune = [
-    #         (model.layers.conv[2], 'weight'),
-    #         (model.classifier, 'weight'),
-    #     ]
 
-    # if args.pruning_ratio_type == "uniform":
     for module, name in parameters_to_prune:
         if name == 'weight':
             prune.random_unstructured(module, name='weight', amount=args.pruning_ratio)
@@ -521,118 +490,15 @@ def condense(args, logger, device='cuda'):
     ts = utils.TimeStamp(args.time)
     n_iter = args.niter * 100 // args.inner_loop
     it_log = n_iter // 50
-    it_test = [100, 200, 400, 1000, 1500, n_iter]
-    # it_test = [1, 2, 5, 10, 20, 50, 100, 200, 250, n_iter]
+    it_test = [1, 2, 5, 10, 20, 100, 250, n_iter]
     logger(f"\nevaluation for {it_test} iteration")
     logger(f"\nStart condensing with {args.match} matching for {n_iter} iteration")
 
     args.fix_iter = max(1, args.fix_iter)
 
-    
-    model_pool = []
-    # seeds = []
-
-    # ## get all possible seeds _300_{seeds}_30_40
-    # folder_name = os.path.join(args.pretrained_dir, f"*_60_70")
-    # folders = glob.glob(folder_name)
-    # for folder in folders:
-    #     seeds.append(folder.split("/")[-1].split("_")[2])
-    # random.shuffle(seeds)
-    # logger(f"Seeds: {seeds}")
-
-    # ## generate model pool: according to args.pool_number and args.sample_accrange,
-    # ## random pick specific number of model from folder pretrained/{args.datatag}/{args.modeltag}_cut/_300_{random_seed}_{args.sample_accrange[0]}_{args.sample_accrange[1]}/
-    # if args.pretrained_dir and args.pool_number:
-    #     # pool_folder = os.path.join(args.pretrained_dir, f"model_pool_{args.pool_number}/{args.sample_accrange[0]}_{args.sample_accrange[1]}")
-    #     pool_folder = ""
-        
-    #     if pool_folder != "" and os.path.isdir(pool_folder):
-    #         filenames = glob.glob(os.path.join(pool_folder, "*.pth.tar"))
-            
-    #         for filename in filenames:
-    #             model_pool.append(filename)
-    #     else:
-    #         if args.sample_accrange[1] - args.sample_accrange[0] == 0:
-    #             for seed in seeds:
-    #                 folder_name = os.path.join(args.pretrained_dir, f"*_{seed}_initial")
-    #                 folder = glob.glob(folder_name)[0]
-    #                 logger(f"folder : {folder}")
-    #                 model_pool.append(random.sample(glob.glob(os.path.join(folder, "*.pth.tar")), 1)[0])
-    #         elif len(args.sample_accrange) == 2 and args.distributed_num == None:
-    #             print(args.pretrained_dir)
-    #             number_of_range = (args.sample_accrange[1] - args.sample_accrange[0])//10
-            
-    #             ## use number_of_range(3) to evenly distribute pool_number(10), e.g [3,4,3]
-    #             num_of_each_range = [args.pool_number//number_of_range for _ in range(number_of_range)] 
-    #             for i in range(args.pool_number%number_of_range):
-    #                 num_of_each_range[i] += 1
-    #             random.shuffle(num_of_each_range)
-    #             logger(f"num_of_each_range: {num_of_each_range}")
-                
-    #             dis_seeds = []
-    #             for num in num_of_each_range:
-    #                 dis_seeds.append(seeds[:num])
-    #                 seeds = seeds[num:]
-
-    #             for ith, seed_in_folders in enumerate(dis_seeds):
-    #                 for seed in seed_in_folders:
-    #                     folder_name = os.path.join(args.pretrained_dir, f"*_{seed}_{args.sample_accrange[0]+ith*10}_{args.sample_accrange[0]+ith*10+10}")
-
-    #                     ## get folders by folder_name and sample args.pool_number of folders randomly
-    #                     folder = glob.glob(folder_name)[0]
-    #                     logger(f"folder : {folder}")
-    #                     model_pool.append(random.sample(glob.glob(os.path.join(folder, "*.pth.tar")), 1)[0])
-    #             # os.mkdir(pool_folder)
-    #             # for file_ in model_pool:
-    #             #     shutil.copy(file_, pool_folder)
-                    
-    #         elif args.distributed_num:
-    #             number_of_range = len(args.sample_accrange)//2
-    #             num_of_each_range = args.distributed_num
-    #             dis_seeds = []
-    #             for num in num_of_each_range:
-    #                 dis_seeds.append(seeds[:num])
-    #                 seeds = seeds[num:]
-
-    #             for ith, seed_in_folders in enumerate(dis_seeds):
-    #                 for seed in seed_in_folders:
-    #                     folder_name = os.path.join(args.pretrained_dir, f"*_{seed}_{args.sample_accrange[0 + ith*2]}_{args.sample_accrange[1+ ith*2]}")
-
-    #                     ## get folders by folder_name and sample args.pool_number of folders randomly
-    #                     folder = glob.glob(folder_name)[0]
-    #                     logger(f"folder : {folder}")
-    #                     model_pool.append(random.sample(glob.glob(os.path.join(folder, "*.pth.tar")), 1)[0])
-
-    #         else:
-    #             number_of_range = len(args.sample_accrange)//2
-
-    #             num_of_each_range = [args.pool_number//number_of_range for _ in range(number_of_range)] 
-    #             for i in range(args.pool_number%number_of_range):
-    #                 num_of_each_range[i] += 1
-    #             random.shuffle(num_of_each_range)
-    #             logger(f"num_of_each_range: {num_of_each_range}")
-                
-    #             dis_seeds = []
-    #             for num in num_of_each_range:
-    #                 dis_seeds.append(seeds[:num])
-    #                 seeds = seeds[num:]
-
-    #             for ith, seed_in_folders in enumerate(dis_seeds):
-    #                 for seed in seed_in_folders:
-    #                     folder_name = os.path.join(args.pretrained_dir, f"*_{seed}_{args.sample_accrange[0 + ith*2]}_{args.sample_accrange[1+ ith*2]}")
-
-    #                     ## get folders by folder_name and sample args.pool_number of folders randomly
-    #                     folder = glob.glob(folder_name)[0]
-    #                     logger(f"folder : {folder}")
-    #                     model_pool.append(random.sample(glob.glob(os.path.join(folder, "*.pth.tar")), 1)[0])
-    #             os.mkdir(pool_folder)
-    #             for file_ in model_pool:
-    #                 shutil.copy(file_, pool_folder)
-    # path_model_pool = os.path.join(args.pretrained_dir, f"{args.pool_number}")
-    # path_model_pool = os.path.join(path_model_pool, f"{args.sample_accrange[0]}_{args.sample_accrange[1]}")
-    # model_pool = glob.glob(os.path.join(path_model_pool, "*.pth.tar"))
-    
-
+    path_model_pool = os.path.join(args.pretrained_dir, f"{args.pool_number}")
+    path_model_pool = os.path.join(path_model_pool, f"{args.sample_accrange[0]}_{args.sample_accrange[1]}")
+    model_pool = glob.glob(os.path.join(path_model_pool, "*.pth.tar"))
     logger(f"model pool: {model_pool}")
 
 
@@ -667,21 +533,8 @@ def condense(args, logger, device='cuda'):
 
         # ============== model augmentation =================
         if args.apply_pruning:
+            logger(f'Pruning Type: {args.pruning_type}, ratio: {args.pruning_ratio}')
             apply_pruning(args, model)
-        elif args.apply_dropout:
-            model = add_dropout(model).to(device)
-        elif args.apply_masking:
-            apply_masking(args, model)
-
-        if args.num_tune_subnetwork!=0:
-            for _ in range(args.num_tune_subnetwork):
-                    train_epoch(args,
-                                loader_real,
-                                model,
-                                criterion,
-                                optim_net,
-                                aug=aug_rand,
-                                mixup=args.mixup_net)
 
         # ===================================================
         loss_total = 0
@@ -689,20 +542,7 @@ def condense(args, logger, device='cuda'):
 
         
         for ot in tqdm(range(args.inner_loop)):
-            # # ======== save class gradient of each layer =============
-            # gradient_layers_real = {}
-            # gradient_layers_syn = {}
-
-            # id2name = {}
-            # id_ = 0
-            # for name, layer in model.named_modules():
-            #     if isinstance(layer, torch.nn.Conv2d) or isinstance(layer, torch.nn.Linear):
-            #         gradient_layers_real[name] = []
-            #         gradient_layers_syn[name] = []
-            #         id2name[id_] = name
-            #         id_ += 1
             
-            # # ======== save class gradient of each layer =============
 
             ts.set()
             # Update synset
@@ -724,23 +564,11 @@ def condense(args, logger, device='cuda'):
 
                 optim_img.zero_grad()
                 loss.backward()
+
                 optim_img.step()
                 ts.stamp("backward")
 
-            #     # ======== save gradient ===============
-            #     for id_, grad_real in enumerate(grad[0]):
-            #         gradient_layers_real[id2name[id_]].append(grad_real)
-            #     for id_, grad_syn in enumerate(grad[1]):
-            #         gradient_layers_syn[id2name[id_]].append(grad_syn)
-            #     # ======== save gradient ===============
-
-            # # log gradient of each layer as histogram to wandb
-            # for name, grad_real in gradient_layers_real.items():
-            #     wandb.log({f"gradient/real/{name}": wandb.Histogram(grad_real),  "inner_epoch": ot+it*args.inner_loop}) 
-            #     if name == 'fc':
-            #         print(grad_real)           
-            # for name, grad_syn in gradient_layers_syn.items():
-            #     wandb.log({f"gradient/syn/{name}": wandb.Histogram(grad_syn),  "inner_epoch": ot+it*args.inner_loop})
+            
 
             # Net update
             if args.n_data > 0:
@@ -818,36 +646,11 @@ if __name__ == '__main__':
     if args.phase < 0:
         raise AssertionError("Set phase number! (args.phase)")
 
-    if args.sample_accrange:
-        if len(args.sample_accrange) ==2 :
-            wandb.init(sync_tensorboard=False,
+    wandb.init(sync_tensorboard=False,
                 project = "DatasetDistillation",
                 job_type = "CleanRepo",
                 config = args,
-                name = f'IDC_dataset:{args.dataset}{args.nclass}_phase_{args.phase}_ipc_ipc:{args.ipc}_model:{args.modeltag}_match:{args.match}_strategy:{args.strategy}_softlabel:{args.smoothing}_temperature:{args.temperature}_early:{args.early}_ptrange:({args.pt_from} - {args.pt_from+args.pt_num})_sampleRange:({args.sample_accrange[0]} - {args.sample_accrange[1]})_poolnumber:{args.pool_number}_pretrained:{args.pretrained_dir.split("/")[-1]}_dropout:{args.apply_dropout}_rate:{args.dropout_rate}_pruning:{args.apply_pruning}({args.pruning_ratio})_pruning_type:{args.pruning_type}_tuneEpoch:{args.num_tune_subnetwork}_Masking:{args.apply_masking}_masking_type:{args.masking_type}')
-        elif len(args.sample_accrange) ==4:
-            if args.distributed_num:
-                wandb.init(sync_tensorboard=False,
-                project = "DatasetDistillation",
-                job_type = "CleanRepo",
-                config = args,
-                name = f'IDC_dataset:{args.dataset}{args.nclass}_phase_{args.phase}_ipc_ipc:{args.ipc}_model:{args.modeltag}_match:{args.match}_strategy:{args.strategy}_softlabel:{args.smoothing}_temperature:{args.temperature}_early:{args.early}_ptrange:({args.pt_from} - {args.pt_from+args.pt_num})_sampleRange:({args.sample_accrange[0]} - {args.sample_accrange[1]} - {args.sample_accrange[2]} - {args.sample_accrange[3]})_poolnumber:{args.pool_number}_dis_num:{args.distributed_num}_dropout:{args.apply_dropout}_rate:{args.dropout_rate}_pruning:{args.apply_pruning}({args.pruning_ratio})_pruning_type:{args.pruning_type}_Masking:{args.apply_masking}_masking_type:{args.masking_type}')
-            else:
-                wandb.init(sync_tensorboard=False,
-                project = "DatasetDistillation",
-                job_type = "CleanRepo",
-                config = args,
-                name = f'IDC_dataset:{args.dataset}{args.nclass}_phase_{args.phase}_ipc_ipc:{args.ipc}_model:{args.modeltag}_match:{args.match}_strategy:{args.strategy}_softlabel:{args.smoothing}_temperature:{args.temperature}_early:{args.early}_ptrange:({args.pt_from} - {args.pt_from+args.pt_num})_sampleRange:({args.sample_accrange[0]} - {args.sample_accrange[1]} - {args.sample_accrange[2]} - {args.sample_accrange[3]})_poolnumber:{args.pool_number}_dropout:{args.apply_dropout}_rate:{args.dropout_rate}_pruning:{args.apply_pruning}({args.pruning_ratio})_pruning_type:{args.pruning_type}_Masking:{args.apply_masking}_masking_type:{args.masking_type}')
-            
-
-
-    else:
-         wandb.init(sync_tensorboard=False,
-                project = "DatasetDistillation",
-                job_type = "CleanRepo",
-                config = args,
-                name = f'IDC_dataset:{args.dataset}{args.nclass}_phase_{args.phase}_ipc_ipc:{args.ipc}_model:{args.modeltag}_match:{args.match}_strategy:{args.strategy}_softlabel:{args.smoothing}_temperature:{args.temperature}_early:{args.early}_ptrange:({args.pt_from} - {args.pt_from+args.pt_num})_sampleRange:()_poolnumber:{args.pool_number}_dropout:{args.apply_dropout}_rate:{args.dropout_rate}_pruning:{args.apply_pruning}({args.pruning_ratio})_pruning_type:{args.pruning_type}_Masking:{args.apply_masking}_masking_type:{args.masking_type}')
-
+                name = f'IDC_dataset_{args.dataset}{args.tag}')
 
     if args.seed > 0:
         np.random.seed(args.seed)

@@ -1,0 +1,27 @@
+2025-03-30 12:21:54,132 INFO    MainThread:3585293 [wandb_setup.py:_flush():76] Configure stats pid to 3585293
+2025-03-30 12:21:54,132 INFO    MainThread:3585293 [wandb_setup.py:_flush():76] Loading settings from /home/user/.config/wandb/settings
+2025-03-30 12:21:54,132 INFO    MainThread:3585293 [wandb_setup.py:_flush():76] Loading settings from /home/user/桌面/FredH/Drop2Sparse/wandb/settings
+2025-03-30 12:21:54,132 INFO    MainThread:3585293 [wandb_setup.py:_flush():76] Loading settings from environment variables: {}
+2025-03-30 12:21:54,132 INFO    MainThread:3585293 [wandb_setup.py:_flush():76] Applying setup settings: {'_disable_service': False}
+2025-03-30 12:21:54,133 INFO    MainThread:3585293 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': 'condense_mp.py', 'program': '/home/user/桌面/FredH/Drop2Sparse/condense_mp.py'}
+2025-03-30 12:21:54,133 INFO    MainThread:3585293 [wandb_init.py:_log_setup():506] Logging user logs to /home/user/桌面/FredH/Drop2Sparse/wandb/run-20250330_122154-t03aatca/logs/debug.log
+2025-03-30 12:21:54,133 INFO    MainThread:3585293 [wandb_init.py:_log_setup():507] Logging internal logs to /home/user/桌面/FredH/Drop2Sparse/wandb/run-20250330_122154-t03aatca/logs/debug-internal.log
+2025-03-30 12:21:54,133 INFO    MainThread:3585293 [wandb_init.py:init():546] calling init triggers
+2025-03-30 12:21:54,133 INFO    MainThread:3585293 [wandb_init.py:init():552] wandb.init called with sweep_config: {}
+config: {'dataset': 'imagenet', 'data_dir': '/mnt/16THDD/Fred/FredH/CILAB/data', 'imagenet_dir': '../mnt/16THDD/Fred/FredH/CILAB/data/imagenet/', 'nclass': 100, 'dseed': 0, 'size': 224, 'phase': 0, 'nclass_sub': 10, 'load_memory': False, 'net_type': 'resnet_ap', 'norm_type': 'instance', 'depth': 10, 'width': 1.0, 'epochs': 600, 'batch_size': 128, 'lr': 0.1, 'momentum': 0.9, 'weight_decay': 0.0001, 'seed': 0, 'pretrained': False, 'mixup': 'cut', 'mixup_net': 'cut', 'beta': 1.0, 'mix_p': 1.0, 'print_freq': 10, 'verbose': False, 'workers': 8, 'save_ckpt': False, 'tag': '_grad_l1_nd500_cut_nlr0.1_wd0.0001_factor3_bound_lr0.002_mom_img0.5_b_real128_mix_ipc:20_sample_accrange:(60-70)_poolNumber: 10_pretrained:resnet10apin_cut_dsa_p_10_phase0', 'test': False, 'time': False, 'ipc': 20, 'factor': 3, 'decode_type': 'bound', 'init': 'mix', 'aug_type': 'color_crop_cutout', 'match': 'grad', 'metric': 'l1', 'bias': False, 'fc': False, 'f_idx': '4', 'niter': 500, 'inner_loop': 100, 'early': 0, 'fix_iter': -1, 'net_epoch': 1, 'n_data': 500, 'pt_from': -1, 'pt_num': 1, 'batch_real': 128, 'batch_syn_max': 128, 'lr_img': 0.002, 'mom_img': 0.5, 'reproduce': False, 'slct_type': 'idc', 'repeat': 1, 'dsa': False, 'dsa_strategy': 'color_crop_flip_scale_rotate', 'rrc': True, 'same_compute': False, 'name': '', 'apply_pruning': True, 'pruning_type': 'global', 'pruning_ratio': 0.95, 'sample_accrange': [60, 70], 'pool_number': 10, 'distributed_num': None, 'pretrained_dir': './pretrained/imagenet100/resnet10apin_cut_dsa_p', 'track_training': False, 'bottleneck': True, 'nch': 3, 'datatag': 'imagenet100', 'modeltag': 'resnet10apin', 'save_dir': './results/imagenet100/resnet10apin_grad_l1_nd500_cut_nlr0.1_wd0.0001_factor3_bound_lr0.002_mom_img0.5_b_real128_mix_ipc:20_sample_accrange:(60-70)_poolNumber: 10_pretrained:resnet10apin_cut_dsa_p_10_phase0', 'epoch_print_freq': 6, 'augment': True}
+2025-03-30 12:21:54,133 INFO    MainThread:3585293 [wandb_init.py:init():602] starting backend
+2025-03-30 12:21:54,133 INFO    MainThread:3585293 [wandb_init.py:init():606] setting up manager
+2025-03-30 12:21:54,134 INFO    MainThread:3585293 [backend.py:_multiprocessing_setup():106] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2025-03-30 12:21:54,135 INFO    MainThread:3585293 [wandb_init.py:init():613] backend started and connected
+2025-03-30 12:21:54,137 INFO    MainThread:3585293 [wandb_init.py:init():701] updated telemetry
+2025-03-30 12:21:54,170 INFO    MainThread:3585293 [wandb_init.py:init():741] communicating run to backend with 60.0 second timeout
+2025-03-30 12:21:54,864 INFO    MainThread:3585293 [wandb_run.py:_on_init():2133] communicating current version
+2025-03-30 12:21:55,074 INFO    MainThread:3585293 [wandb_run.py:_on_init():2142] got version response upgrade_message: "wandb version 0.19.8 is available!  To upgrade, please run:\n $ pip install wandb --upgrade"
+
+2025-03-30 12:21:55,074 INFO    MainThread:3585293 [wandb_init.py:init():789] starting run threads in backend
+2025-03-30 12:21:56,139 INFO    MainThread:3585293 [wandb_run.py:_console_start():2114] atexit reg
+2025-03-30 12:21:56,139 INFO    MainThread:3585293 [wandb_run.py:_redirect():1969] redirect: SettingsConsole.WRAP_RAW
+2025-03-30 12:21:56,139 INFO    MainThread:3585293 [wandb_run.py:_redirect():2034] Wrapping output streams.
+2025-03-30 12:21:56,139 INFO    MainThread:3585293 [wandb_run.py:_redirect():2059] Redirects installed.
+2025-03-30 12:21:56,139 INFO    MainThread:3585293 [wandb_init.py:init():831] run started, returning control to user process
+2025-03-30 12:22:02,323 WARNING MsgRouterThr:3585293 [router.py:message_loop():77] message_loop has been closed

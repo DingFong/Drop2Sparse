@@ -1,0 +1,7 @@
+pretrained/*
+results/*
+!pretrained/.gitkeep
+!results/.gitkeep
+wandb/
+
+__pycache__

@@ -84,10 +84,10 @@ parser.add_argument('-d',
                     type=str,
                     help='dataset (options: mnist, fashion, svhn, cifar10, cifar100, and imagenet)')
 parser.add_argument('--data_dir',
-                    default='/mnt/16THDD/Fred/FredH/CILAB/data',
+                    default='/data',
                     type=str,
                     help='directory that containing dataset, except imagenet (see data.py)')
-parser.add_argument('--imagenet_dir', default='/mnt/16THDD/Fred/FredH/CILAB/data/imagenet/', type=str)
+parser.add_argument('--imagenet_dir', default='/data/imagenet/', type=str)
 parser.add_argument('--nclass', default=10, type=int, help='number of classes in trianing dataset')
 parser.add_argument('--dseed', default=0, type=int, help='seed for class sampling')
 parser.add_argument('--size', default=224, type=int, help='spatial size of image')
@@ -155,7 +155,7 @@ parser.add_argument('-i', '--ipc', type=int, default=-1, help='number of condens
 parser.add_argument('-f',
                     '--factor',
                     type=int,
-                    default=1,
+                    default=2,
                     help='multi-formation factor. (1 for IDC-I)')
 parser.add_argument('--decode_type',
                     type=str,

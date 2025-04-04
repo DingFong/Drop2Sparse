@@ -8,6 +8,7 @@ def set_arguments(args):
         args.net_type = 'convnet'
         args.depth = 3
         args.niter = 2000
+        
         if args.dataset[:5] == 'cifar':
             args.metric = 'mse'
             args.lr_img = 5e-3
@@ -45,8 +46,6 @@ def set_arguments(args):
         if args.nclass == 10:
             args.metric = 'l1'
             args.lr_img = 3e-3
-            # Pretrain networks for 10 epochs every outer iteration.
-            args.early = 10
         elif args.nclass == 100:
             args.metric = 'l1'
             args.lr_img = 1e-3

@@ -522,6 +522,7 @@ def condense(args, logger, device='cuda'):
             elif args.pt_from >= 0:
                 pretrain_sample(args, model)
             if args.early > 0:
+                print(f"Expert: Early epoch:{args.early}")
                 for _ in range(args.early):
                     train_epoch(args,
                                 loader_real,
@@ -598,10 +599,11 @@ def condense(args, logger, device='cuda'):
             if (ot + 1) % 10 == 0:
                 ts.flush()
 
-        # # Logging
-        # wandb.log({"Expert/top1":top1, 
-        #             "Expert/top5":top5, 
-        #             "Expert/loss":losses, "ot_epoch":it})
+        # Logging
+        if args.n_data>0:
+            wandb.log({"Expert/top1":top1, 
+                        "Expert/top5":top5, 
+                        "Expert/loss":losses, "ot_epoch":it})
         
         wandb.log({"MatchLoss":loss_total/nclass/args.inner_loop, "ot_epoch":it})
 
@@ -620,14 +622,7 @@ def condense(args, logger, device='cuda'):
                 os.path.join(args.save_dir, f'data{it+1}.pt'))
             print("img and data saved!")
 
-            if not args.test:
-                continue
-                # test_result = synset.test(args, val_loader, logger)
-                # if len(test_result) >1:
-                #     wandb.log({"Test/ConvNet":test_result[0], 
-                #             "Test/ResNet":test_result[1], "ot_epoch":it})
-                # else:
-                #     wandb.log({"Test/ConvNet":test_result[0], "ot_epoch":it})
+            
 
 
 if __name__ == '__main__':

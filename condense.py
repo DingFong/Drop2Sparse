@@ -564,7 +564,7 @@ def condense(args, logger, device='cuda'):
     ts = utils.TimeStamp(args.time)
     n_iter = args.niter * 100 // args.inner_loop
     it_log = n_iter // 50
-    it_test = [n_iter//20, n_iter // 8, n_iter // 4, n_iter // 2, n_iter//4+n_iter//2 , n_iter]
+    it_test = [1, 100, 400, 1000, n_iter]
     logger(f"\nevaluation for {it_test} iteration")
     
     logger(f"\nStart condensing with {args.match} matching for {n_iter} iteration")
@@ -602,7 +602,7 @@ def condense(args, logger, device='cuda'):
 
                 logger(f"load model from {model_path}")
 
-            elif args.pt_from >= 0 or args.sample_accrange:
+            elif args.pt_from >= 0:
                 pretrain_sample(args, model)
             if args.early > 0:
                 print(f"Expert: Early epoch:{args.early}")
@@ -627,7 +627,7 @@ def condense(args, logger, device='cuda'):
         
         for ot in tqdm(range(args.inner_loop)):
             ts.set()
-            
+            # Update synset
             inner_loss = 0
             for c in range(nclass):
                 img, lab = loader_real.class_sample(c)

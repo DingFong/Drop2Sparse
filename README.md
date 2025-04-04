@@ -50,7 +50,7 @@ python condense.py --reproduce -d [dataset] --ipc [ipc] --sample_accrange [min_a
 Example:
 
 ```
-python condense.py --reproduce -d cifar10 -f 2 --ipc 1 --sample_accrange 70 80 --pool_number 5 --depth 3 -n convnet --apply_pruning --pruning_ratio 0.8 --pruning_type global
+python condense.py --reproduce -d cifar10 --ipc 1 --sample_accrange 70 80 --pool_number 5 --depth 3 -n convnet --apply_pruning --pruning_ratio 0.8 --pruning_type global
 ```
 
 - `-d`: Dataset name.
